@@ -1,6 +1,7 @@
 import pygame#路径：pip install pygame -i https://pypi.tuna.tsinghua.edu.cn/simple
 import random
 import time
+import os
 
 # Initialize pygame and set up window
 title='Star Wars'
@@ -15,28 +16,49 @@ pygame.display.set_caption(title)#建立标题
 screen.fill(bg)
 # 初始化pygame和设置窗口
 
+# Define constants
+ENEMY_EVENT = pygame.USEREVENT + 1
+FIRE_EVENT = pygame.USEREVENT + 2
+FRAME_RATE = 60
+BACKGROUND_COLOR = bg
+
+# Get the current directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 class GameSprite(pygame.sprite.Sprite):
     """Base Game Sprite Class 游戏基础精灵类"""
-    # Initialize sprite, load image, set position and speed
-    # 初始化精灵，加载图片，设置位置和速度
-    # Update method controls vertical movement
-    # update方法控制垂直移动
+
+    def __init__(self, image_name, speed=1):
+        super().__init__()
+        # Load image with full path
+        full_path = os.path.join(BASE_DIR, image_name)
+        self.image = pygame.image.load(full_path)
+        self.rect = self.image.get_rect()
+        # Set speed
+        self.speed = speed
+
+    def update(self):
+        # Move sprite vertically
+        self.rect.y += self.speed
 
 class Hero(GameSprite):
     """Player Aircraft Class 玩家飞机类"""
 
     def __init__(self):
-        # Call parent class constructor
-        super().__init__("hero.png", speed=0)
+        super().__init__("hero.png", speed=5)
         # Set initial position
         self.rect.centerx = SCREEN_WIDTH / 2
         self.rect.bottom = SCREEN_HEIGHT - 60
         # Create bullet group
         self.bullets = pygame.sprite.Group()
 
+    def update(self):
+        # Movement handled in Game class
+        pass
+
     def fire(self):
         # Create a bullet instance
-        bullet = Bullet("bullet.png", -2)
+        bullet = Bullet("bullet.png", -10)
         # Set bullet position
         bullet.rect.centerx = self.rect.centerx
         bullet.rect.bottom = self.rect.top
@@ -45,17 +67,35 @@ class Hero(GameSprite):
 
 class Bullet(GameSprite):
     """Bullet Class 子弹类"""
-    # Initialize bullet, set speed
-    # 初始化子弹，设置速度
-    # Update method controls bullet movement and destruction
-    # update方法控制子弹移动和销毁
+
+    def __init__(self, image_name, speed):
+        super().__init__(image_name, speed)
+
+    def update(self):
+        # Move bullet upwards
+        self.rect.y += self.speed
+        # Destroy bullet if it moves out of screen
+        if self.rect.bottom < 0:
+            self.kill()
 
 class Enemy(GameSprite):
     """Enemy Aircraft Class 敌机类"""
-    # Initialize enemy, random position and speed
-    # 初始化敌机，随机位置和速度
-    # Update method controls enemy movement and destruction
-    # update方法控制敌机移动和销毁
+
+    def __init__(self):
+        super().__init__("enemy.png")
+        # Random horizontal position
+        self.rect.x = random.randint(0, SCREEN_WIDTH - self.rect.width)
+        # Start above the screen
+        self.rect.y = -self.rect.height
+        # Random speed
+        self.speed = random.randint(1, 3)
+
+    def update(self):
+        # Move enemy downwards
+        self.rect.y += self.speed
+        # Destroy enemy if it moves out of screen
+        if self.rect.top > SCREEN_HEIGHT:
+            self.kill()
 
 class Game:
     """Main Game Class 游戏主类"""
