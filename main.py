@@ -51,6 +51,7 @@ class Hero(GameSprite):
         self.rect.bottom = SCREEN_HEIGHT - 60
         # Create bullet group
         self.bullets = pygame.sprite.Group()
+        # 确保 fire_sound 已经被赋值给 self.fire_sound
 
     def update(self):
         # Movement handled in Game class
@@ -64,6 +65,7 @@ class Hero(GameSprite):
         bullet.rect.bottom = self.rect.top
         # Add bullet to bullet group
         self.bullets.add(bullet)
+        self.fire_sound.play()  # 播放子弹发射音效
 
 class Bullet(GameSprite):
     """Bullet Class 子弹类"""
@@ -89,13 +91,20 @@ class Enemy(GameSprite):
         self.rect.y = -self.rect.height
         # Random speed
         self.speed = random.randint(1, 3)
+        # 使用 convert_alpha() 加载爆炸图片，确保透明通道
+        self.explosion_image = pygame.image.load(os.path.join(BASE_DIR, "explosion.png")).convert_alpha()
+        self.is_exploding = False
 
     def update(self):
-        # Move enemy downwards
-        self.rect.y += self.speed
-        # Destroy enemy if it moves out of screen
-        if self.rect.top > SCREEN_HEIGHT:
+        if self.is_exploding:
+            self.image = self.explosion_image
             self.kill()
+        else:
+            # Move enemy downwards
+            self.rect.y += self.speed
+            # Destroy enemy if it moves out of screen
+            if self.rect.top > SCREEN_HEIGHT:
+                self.kill()
 
 class Game:
     """Main Game Class 游戏主类"""
@@ -111,6 +120,32 @@ class Game:
         # Set timer events for enemy creation and firing
         pygame.time.set_timer(ENEMY_EVENT, 1000)
         pygame.time.set_timer(FIRE_EVENT, 500)
+        self.score = 0  # 初始化得分
+        self.life = 3   # 初始化生命值
+        self.font = pygame.font.SysFont('arial', 36)
+
+        # 加载音效
+        pygame.mixer.init()
+        self.background_music = pygame.mixer.Sound('background.wav')
+        self.fire_sound = pygame.mixer.Sound('fire.wav')
+        self.explosion_sound = pygame.mixer.Sound('explosion.wav')
+        self.background_music.play(-1)
+        
+        # 创建玩家对象
+        # self.hero = Hero()  # Remove duplicate initialization
+        self.hero.fire_sound = self.fire_sound  # 将 fire_sound ���给 Hero 实例
+        self.game_over = False  # Add game_over flag
+
+    def game_over_screen(self):
+        """Display Game Over Screen 显示游戏结束画面"""
+        self.screen.fill(BACKGROUND_COLOR)
+        game_over_text = self.font.render("Game Over", True, (255, 0, 0))
+        score_text = self.font.render(f"Score: {self.score}", True, (255, 255, 255))
+        restart_text = self.font.render("Press R to Restart", True, (255, 255, 255))
+        self.screen.blit(game_over_text, (SCREEN_WIDTH//2 - game_over_text.get_width()//2, SCREEN_HEIGHT//2 - 50))
+        self.screen.blit(score_text, (SCREEN_WIDTH//2 - score_text.get_width()//2, SCREEN_HEIGHT//2))
+        self.screen.blit(restart_text, (SCREEN_WIDTH//2 - restart_text.get_width()//2, SCREEN_HEIGHT//2 + 50))
+        pygame.display.update()
 
     def create_enemy(self):
         """Create Enemy Method 创建敌机方法"""
@@ -128,32 +163,76 @@ class Game:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
-                elif event.type == ENEMY_EVENT:
+                elif event.type == ENEMY_EVENT and not self.game_over:
                     self.create_enemy()
-                elif event.type == FIRE_EVENT:
+                elif event.type == FIRE_EVENT and not self.game_over:
                     self.hero.fire()
-            # 3. Player movement control 玩家移动控制
-            keys_pressed = pygame.key.get_pressed()
-            if keys_pressed[pygame.K_LEFT]:
-                self.hero.rect.x -= self.hero.speed
-            if keys_pressed[pygame.K_RIGHT]:
-                self.hero.rect.x += self.hero.speed
-            # 4. Create enemies 创建敌机
-            # Enemies are created via timer events
-            # 5. Update sprite groups 更新精灵组
-            self.hero_group.update()
-            self.hero.bullets.update()
-            self.enemy_group.update()
-            # 6. Collision detection 碰撞检测
-            pygame.sprite.groupcollide(self.hero.bullets, self.enemy_group, True, True)
-            if pygame.sprite.spritecollideany(self.hero, self.enemy_group):
-                pygame.quit()
-                exit()
-            # 7. Draw screen 绘制画面
-            self.screen.fill(BACKGROUND_COLOR)
-            self.hero_group.draw(self.screen)
-            self.hero.bullets.draw(self.screen)
-            self.enemy_group.draw(self.screen)
+                elif event.type == pygame.KEYDOWN and self.game_over:
+                    if event.key == pygame.K_r:
+                        self.__init__()  # Restart the game
+
+            if not self.game_over:
+                # 3. Player movement control 玩家移动控制
+                keys_pressed = pygame.key.get_pressed()
+                if keys_pressed[pygame.K_LEFT]:
+                    self.hero.rect.x -= self.hero.speed
+                if keys_pressed[pygame.K_RIGHT]:
+                    self.hero.rect.x += self.hero.speed
+                if keys_pressed[pygame.K_UP]:
+                    self.hero.rect.y -= self.hero.speed
+                if keys_pressed[pygame.K_DOWN]:
+                    self.hero.rect.y += self.hero.speed
+
+                # 限制玩家移动范围
+                if self.hero.rect.left < 0:
+                    self.hero.rect.left = 0
+                if self.hero.rect.right > SCREEN_WIDTH:
+                    self.hero.rect.right = SCREEN_WIDTH
+                if self.hero.rect.top < 0:
+                    self.hero.rect.top = 0
+                if self.hero.rect.bottom > SCREEN_HEIGHT:
+                    self.hero.rect.bottom = SCREEN_HEIGHT
+
+                # 4. Create enemies 创建敌机
+                # Enemies are created via timer events
+                # 5. Update sprite groups 更新精灵组
+                self.hero_group.update()
+                self.hero.bullets.update()
+                self.enemy_group.update()
+                
+                # 6. Collision detection 碰撞检测
+                # Handle bullets hitting enemies
+                collisions = pygame.sprite.groupcollide(self.hero.bullets, self.enemy_group, True, False)
+                for enemies in collisions.values():
+                    for enemy in enemies:
+                        enemy.is_exploding = True
+                        self.explosion_sound.play()
+                        self.score += 10  # 每击毁一架敌机，得分增加10
+
+                # Handle hero colliding with enemies
+                collisions = pygame.sprite.spritecollide(self.hero, self.enemy_group, True)
+                for enemy in collisions:
+                    self.explosion_sound.play()
+                    self.life -= 1  # 生命值减1
+                    if self.life <= 0:
+                        self.game_over = True
+
+            else:
+                self.game_over_screen()
+
+            if not self.game_over:
+                # 7. Draw screen 绘制画面
+                self.screen.fill(BACKGROUND_COLOR)
+                self.hero_group.draw(self.screen)
+                self.hero.bullets.draw(self.screen)
+                self.enemy_group.draw(self.screen)
+                # 绘制得分和生命值
+                score_text = self.font.render(f"Score: {self.score}", True, (255, 255, 255))
+                life_text = self.font.render(f"Life: {self.life}", True, (255, 255, 255))
+                self.screen.blit(score_text, (10, 10))
+                self.screen.blit(life_text, (10, 50))
+            else:
+                self.game_over_screen()
             # 8. Update display 更新显示
             pygame.display.update()
 
