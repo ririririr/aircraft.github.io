@@ -4,20 +4,16 @@ import time
 
 # Initialize pygame and set up window
 title='Star Wars'
-width=900
-height=800
+SCREEN_WIDTH=900
+SCREEN_HEIGHT=800
 bg = (55,85,155)#调色三原色
 pygame.init()#初始化
-screen = pygame.display.set_mode((width,height))#建立窗口
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))#建立窗口
 pygame.display.set_caption(title)#建立标题
 
 
 screen.fill(bg)
 # 初始化pygame和设置窗口
-while True:
-    time.sleep(5)
-    pygame.display.update()#刷新
-# ...
 
 class GameSprite(pygame.sprite.Sprite):
     """Base Game Sprite Class 游戏基础精灵类"""
