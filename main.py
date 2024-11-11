@@ -1,8 +1,22 @@
-import pygame
+import pygame#路径：pip install pygame -i https://pypi.tuna.tsinghua.edu.cn/simple
 import random
+import time
 
 # Initialize pygame and set up window
+title='Star Wars'
+width=900
+height=800
+bg = (55,85,155)#调色三原色
+pygame.init()#初始化
+screen = pygame.display.set_mode((width,height))#建立窗口
+pygame.display.set_caption(title)#建立标题
+
+
+screen.fill(bg)
 # 初始化pygame和设置窗口
+while True:
+    time.sleep(5)
+    pygame.display.update()#刷新
 # ...
 
 class GameSprite(pygame.sprite.Sprite):
