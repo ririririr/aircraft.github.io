@@ -8,7 +8,7 @@ FPS = 60
 # Game mechanics
 PLAYER_SPEED = 5
 BULLET_SPEED = 7
-ENEMY_SPEED = 1.5
+ENEMY_SPEED = 1
 GAME_DURATION = 120  # seconds
 
 # Colors

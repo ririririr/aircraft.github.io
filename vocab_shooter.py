@@ -1,7 +1,6 @@
 import pygame
 import random
 from typing import List
-import math
 
 from constants import *
 from sprites import ModernPlayer, ModernBullet
@@ -120,7 +119,7 @@ class ModernGame:
         words = [self.current_word]
         decoys = list(vocab_list.keys())
         decoys.remove(self.current_word)
-        words.extend(random.sample(decoys, 2))
+        words.extend(random.sample(decoys, 3))
         random.shuffle(words)
         
         spacing = SCREEN_WIDTH // 4
