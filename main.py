@@ -1,7 +1,7 @@
 import pygame
 import random
 from typing import List
-
+import asyncio
 from constants import *
 from sprites import ModernPlayer, ModernBullet
 from game_states import GameState, MenuScreen, PauseScreen, GameOverScreen
@@ -283,15 +283,15 @@ class ModernGame:
             
         pygame.display.flip()
         
-    def run(self):
+    async def run(self):
         while self.running:
             self.handle_events()
             self.update()
             self.draw()
             self.clock.tick(FPS)
+            await asyncio.sleep(0)
             
         pygame.quit()
 
-if __name__ == "__main__":
-    game = ModernGame()
-    game.run()
+game = ModernGame()
+asyncio.run(game.run())
